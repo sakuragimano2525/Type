@@ -231,11 +231,11 @@
     </div>
 
     <div class="toggles">
-      <div class="toggle on" id="toggle-atk">
+      <div class="toggle" id="toggle-atk">
         <div class="box"><svg viewBox="0 0 16 16"><path d="M2 8l4 4 8-8" stroke="#08131f" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         攻撃の相性
       </div>
-      <div class="toggle on" id="toggle-def">
+      <div class="toggle" id="toggle-def">
         <div class="box"><svg viewBox="0 0 16 16"><path d="M2 8l4 4 8-8" stroke="#08131f" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         防御の相性
       </div>
@@ -360,9 +360,9 @@ function styleForMul(mul){
 
 /* =============== 状態 =============== */
 let mode = "single";       // single / dual / move
-let atkOn = true;
-let defOn = true;
-let selectedKeys = ["water"]; // 中心（複合/技タイプは複数選択可）
+let atkOn = false;
+let defOn = false;
+let selectedKeys = ["normal"]; // 中心（複合/技タイプは複数選択可）
 
 /* =============== DOM参照 =============== */
 const stage = document.getElementById('stage');
@@ -401,11 +401,11 @@ tabs.forEach(tab=>{
     tab.classList.add('active');
     mode = tab.dataset.mode;
     if(mode === 'single'){
-      selectedKeys = [selectedKeys[0] || 'water'];
+      selectedKeys = [selectedKeys[0] || 'normal'];
       typePicker.classList.remove('show');
     } else {
       // 複合/技タイプ: 選択チップを表示
-      if(selectedKeys.length < 1) selectedKeys = ['water'];
+      if(selectedKeys.length < 1) selectedKeys = ['normal'];
       typePicker.classList.add('show');
       buildPicker();
     }
