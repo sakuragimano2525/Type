@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>タイプ相性チャート</title>
+<style>
+  :root{
+    --bg:#0e1116;
+    --panel:#161b22;
+    --panel-2:#1c2330;
+    --line:#2a3140;
+    --text:#e8ecf2;
+    --sub:#8892a0;
+    --accent:#4da8ff;
+
+    --c-supereff:#ff9d2f; /* x4 */
+    --c-eff:#ff4d4d;      /* x2 */
+    --c-half:#4da8ff;     /* x0.5 */
+    --c-quarter:#37d67a;  /* x0.25 */
+    --c-none:#8892a0;     /* x0 */
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; width:100%; height:100%;
+    background:var(--bg); color:var(--text);
+    font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+    overflow:hidden; overscroll-behavior:none;
+  }
+  #app{
+    width:100vw; height:100vh;
+    display:flex; flex-direction:column;
+  }
+
+  /* ヘッダー */
+  header{
+    flex:0 0 auto;
+    padding:10px 12px 6px;
+    background:linear-gradient(180deg, var(--panel), rgba(22,27,34,0.0));
+  }
+  .tabs{
+    display:flex; gap:6px;
+    background:var(--panel-2);
+    border-radius:12px;
+    padding:4px;
+    border:1px solid var(--line);
+  }
+  .tab{
+    flex:1;
+    text-align:center;
+    padding:9px 4px;
+    border-radius:9px;
+    font-size:13px;
+    font-weight:700;
+    color:var(--sub);
+    letter-spacing:.02em;
+    transition:background .15s, color .15s;
+    user-select:none;
+  }
+  .tab.active{
+    background:var(--accent);
+    color:#08131f;
+  }
+
+  .toggles{
+    display:flex; gap:8px;
+    margin-top:8px;
+  }
+  .toggle{
+    flex:1;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    padding:7px 6px;
+    border-radius:10px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--sub);
+    user-select:none;
+    transition:border-color .15s, color .15s;
+  }
+  .toggle.on{ color:var(--text); border-color:var(--accent); }
+  .toggle .box{
+    width:16px; height:16px; border-radius:4px;
+    border:1.5px solid var(--sub);
+    display:flex; align-items:center; justify-content:center;
+    flex:0 0 auto;
+    transition:background .15s, border-color .15s;
+  }
+  .toggle.on .box{ background:var(--accent); border-color:var(--accent); }
+  .toggle .box svg{ width:11px; height:11px; opacity:0; transition:opacity .1s; }
+  .toggle.on .box svg{ opacity:1; }
+
+  /* タイプ選択チップ（複合/技タイプ用） */
+  .type-picker{
+    display:none;
+    flex-wrap:wrap;
+    gap:5px;
+    margin-top:8px;
+    max-height:130px;
+    overflow-y:auto;
+    padding:2px 1px;
+  }
+  .type-picker.show{ display:flex; }
+  .chip{
+    padding:6px 10px;
+    border-radius:999px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    font-size:11.5px;
+    font-weight:600;
+    color:var(--sub);
+    display:flex; align-items:center; gap:4px;
+    user-select:none;
+  }
+  .chip img{ width:14px; height:14px; border-radius:50%; object-fit:cover; }
+  .chip.sel{ border-color:var(--accent); color:var(--text); background:rgba(77,168,255,.12); }
+
+  /* メインエリア(円グラフ) */
+  #stage-wrap{
+    flex:1 1 auto;
+    position:relative;
+    min-height:0;
+  }
+  #stage{
+    position:absolute; inset:0;
+    touch-action:none;
+  }
+  svg{ width:100%; height:100%; display:block; }
+
+  .node-label{
+    font-size:12px;
+    font-weight:700;
+    fill:var(--text);
+    text-anchor:middle;
+    dominant-baseline:central;
+    pointer-events:none;
+  }
+  .node-circle{
+    stroke:var(--line);
+    stroke-width:2px;
+  }
+  .node-circle.center{
+    stroke:#fff;
+    stroke-width:3px;
+  }
+  .node-img{ pointer-events:none; }
+
+  .node-fallback-bg{ fill:#39404c; }
+
+  /* 凡例 */
+  #legend{
+    flex:0 0 auto;
+    background:var(--panel);
+    border-top:1px solid var(--line);
+    padding:8px 10px 10px;
+  }
+  .legend-row{
+    display:flex;
+    justify-content:space-between;
+    gap:4px;
+  }
+  .legend-item{
+    flex:1;
+    display:flex; flex-direction:column; align-items:center;
+    gap:3px;
+  }
+  .legend-arrow{
+    width:100%; height:10px;
+  }
+  .legend-text{
+    font-size:9.5px;
+    color:var(--sub);
+    text-align:center;
+    line-height:1.25;
+    white-space:nowrap;
+  }
+  .legend-style-row{
+    display:flex; justify-content:center; gap:26px;
+    margin-top:8px;
+  }
+  .legend-style-item{
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+  }
+  .legend-style-item svg{ width:46px; height:14px; }
+  .legend-style-item .legend-text{ font-size:10px; }
+
+  /* 全画面ボタン */
+  #fs-hint{
+    position:fixed;
+    top:10px; right:10px;
+    font-size:10.5px;
+    color:var(--sub);
+    background:rgba(22,27,34,.7);
+    padding:5px 9px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    z-index:50;
+    pointer-events:none;
+    opacity:1;
+    transition:opacity .6s ease;
+  }
+  #fs-hint.hide{ opacity:0; }
+
+  /* センター詳細ツールチップ */
+  #tooltip{
+    position:absolute;
+    left:50%; top:8px;
+    transform:translateX(-50%);
+    background:rgba(22,27,34,.92);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:6px 12px;
+    font-size:12px;
+    color:var(--text);
+    display:none;
+    white-space:nowrap;
+    z-index:10;
+    pointer-events:none;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="tabs">
+      <div class="tab active" data-mode="single">単タイプ</div>
+      <div class="tab" data-mode="dual">複合タイプ</div>
+      <div class="tab" data-mode="move">技タイプ</div>
+    </div>
+
+    <div class="toggles">
+      <div class="toggle on" id="toggle-atk">
+        <div class="box"><svg viewBox="0 0 16 16"><path d="M2 8l4 4 8-8" stroke="#08131f" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        攻撃の相性
+      </div>
+      <div class="toggle on" id="toggle-def">
+        <div class="box"><svg viewBox="0 0 16 16"><path d="M2 8l4 4 8-8" stroke="#08131f" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        防御の相性
+      </div>
+    </div>
+
+    <div class="type-picker" id="type-picker"></div>
+  </header>
+
+  <div id="stage-wrap">
+    <div id="tooltip"></div>
+    <div id="stage"></div>
+  </div>
+
+  <div id="legend">
+    <div class="legend-row" id="legend-row"></div>
+    <div class="legend-style-row">
+      <div class="legend-style-item">
+        <svg viewBox="0 0 46 14"><line x1="2" y1="7" x2="38" y2="7" stroke="#e8ecf2" stroke-width="2.6"/><polygon points="38,2 46,7 38,12" fill="#e8ecf2"/></svg>
+        <div class="legend-text">実線<br>攻撃</div>
+      </div>
+      <div class="legend-style-item">
+        <svg viewBox="0 0 46 14"><line x1="2" y1="7" x2="38" y2="7" stroke="#e8ecf2" stroke-width="2.6" stroke-dasharray="4 3"/><polygon points="38,2 46,7 38,12" fill="#e8ecf2"/></svg>
+        <div class="legend-text">点線<br>防御</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="fs-hint">タップして全画面表示</div>
+
+<script>
+/* =========================================================
+   タイプ定義（アルファベット順）
+   1 bug(むし) 2 dark(あく) 3 dragon(ドラゴン) 4 electric(でんき)
+   5 fairy(フェアリー) 6 fighting(かくとう) 7 fire(ほのお) 8 flying(ひこう)
+   9 ghost(ゴースト) 10 grass(くさ) 11 ground(じめん) 12 ice(こおり)
+   13 normal(ノーマル) 14 poison(どく) 15 psychic(エスパー) 16 rock(いわ)
+   17 steel(はがね) 18 water(みず)
+   画像は N.png (例: 18.png) を /mnt/user-data 等、同フォルダに配置してください。
+========================================================= */
+const TYPES = [
+  {id:1,  key:"bug",      ja:"むし",       color:"#8bab1e"},
+  {id:2,  key:"dark",     ja:"あく",       color:"#6b5443"},
+  {id:3,  key:"dragon",   ja:"ドラゴン",   color:"#5c37e0"},
+  {id:4,  key:"electric", ja:"でんき",     color:"#e8c418"},
+  {id:5,  key:"fairy",    ja:"フェアリー", color:"#e692b0"},
+  {id:6,  key:"fighting", ja:"かくとう",   color:"#a3282d"},
+  {id:7,  key:"fire",     ja:"ほのお",     color:"#e8621e"},
+  {id:8,  key:"flying",   ja:"ひこう",     color:"#a48ce0"},
+  {id:9,  key:"ghost",    ja:"ゴースト",   color:"#5c4a8c"},
+  {id:10, key:"grass",    ja:"くさ",       color:"#5cab2e"},
+  {id:11, key:"ground",   ja:"じめん",     color:"#8a5a29"},
+  {id:12, key:"ice",      ja:"こおり",     color:"#26c2c2"},
+  {id:13, key:"normal",   ja:"ノーマル",   color:"#8a8a5c"},
+  {id:14, key:"poison",   ja:"どく",       color:"#8a2ea3"},
+  {id:15, key:"psychic",  ja:"エスパー",   color:"#e6528c"},
+  {id:16, key:"rock",     ja:"いわ",       color:"#8a7a1e"},
+  {id:17, key:"steel",    ja:"はがね",     color:"#8a94a3"},
+  {id:18, key:"water",    ja:"みず",       color:"#4d8ce8"},
+  {id:19, key:"sound",   ja:"サウンド",   color:"#e040fb"},
+  {id:20, key:"shine",   ja:"シャイン",   color:"#ffd600"},
+];
+const T = Object.fromEntries(TYPES.map(t=>[t.key,t]));
+const idToKey = Object.fromEntries(TYPES.map(t=>[t.id,t.key]));
+
+/* 攻撃側キーが、防御側キーに対して与える倍率(基本値は1: 通常)
+   ここでは「1と異なる」ものだけ記述。倍率は 2 / 0.5 / 0 のいずれか。
+   複合防御側は掛け算で自動算出。技タイプ複合は最大値を採用（本家仕様）。
+*/
+const CHART = {
+  // sound防御: ×2=ドラゴン,でんき,どく / ×0.5=むし,フェアリー,くさ,じめん,みず,サウンド
+  // shine防御: ×2=あく,こおり         / ×0.5=むし,かくとう,ほのお,ゴースト,くさ,サウンド,シャイン
+  bug:      { dark:2, fire:0.5, flying:0.5, grass:2, sound:0.5, shine:0.5 },
+  dark:     { dark:0.5, fairy:0.5, fighting:0.5, ghost:2, psychic:2, shine:2 },
+  dragon:   { dragon:2, fairy:0, steel:0.5, sound:2 },
+  electric: { dragon:0.5, electric:0.5, flying:2, ground:0, grass:0.5, sound:2 },
+  fairy:    { dark:2, dragon:2, fighting:2, fire:0.5, poison:0.5, steel:0.5, sound:0.5 },
+  fighting: { bug:0.5, dark:2, fairy:0.5, flying:0.5, ghost:0, normal:2, poison:0.5, psychic:0.5, rock:2, steel:2, shine:0.5 },
+  fire:     { bug:2, dragon:0.5, fire:0.5, grass:2, ground:0.5, ice:2, rock:0.5, steel:2, water:0.5, shine:0.5 },
+  flying:   { bug:2, electric:0.5, fighting:2, grass:2, rock:0.5, steel:0.5 },
+  ghost:    { dark:0.5, ghost:2, normal:0, psychic:2, shine:0.5 },
+  grass:    { bug:0.5, dragon:0.5, fire:0.5, flying:0.5, grass:0.5, ground:2, poison:0.5, rock:2, steel:0.5, water:2, sound:0.5, shine:0.5 },
+  ground:   { bug:0.5, electric:2, fire:2, flying:0, grass:0.5, poison:2, rock:2, steel:2, sound:0.5 },
+  ice:      { dragon:2, fire:0.5, flying:2, grass:2, ground:2, ice:0.5, steel:0.5, water:0.5, shine:2 },
+  normal:   { ghost:0, rock:0.5, steel:0.5 },
+  poison:   { fairy:2, ghost:0.5, grass:2, ground:0.5, poison:0.5, rock:0.5, steel:0, sound:2 },
+  psychic:  { dark:0, fighting:2, poison:2, psychic:0.5, steel:0.5 },
+  rock:     { bug:2, fighting:0.5, fire:2, flying:2, ground:0.5, ice:2, steel:0.5 },
+  steel:    { electric:0.5, fairy:2, fire:0.5, ice:2, rock:2, steel:0.5, water:0.5 },
+  water:    { dragon:0.5, fire:2, grass:0.5, ground:2, rock:2, steel:0.5, water:0.5, sound:0.5 },
+  // サウンド: ×2=フェアリー,ひこう,はがね,みず / ×0.5=ドラゴン,でんき,どく,いわ,サウンド,シャイン
+  sound:    { fairy:2, flying:2, steel:2, water:2, dragon:0.5, electric:0.5, poison:0.5, rock:0.5, sound:0.5, shine:0.5 },
+  // シャイン: ×2=あく,ドラゴン,ゴースト / ×0.5=ほのお,くさ,こおり,サウンド,シャイン
+  shine:    { dark:2, dragon:2, ghost:2, fire:0.5, grass:0.5, ice:0.5, sound:0.5, shine:0.5 },
+};
+
+/* 単体攻撃倍率取得 */
+function atkMul(atkKey, defKey){
+  const row = CHART[atkKey];
+  if(row && row[defKey] !== undefined) return row[defKey];
+  return 1;
+}
+/* 複合防御に対する攻撃側の合計倍率 */
+function atkMulVsMulti(atkKey, defKeys){
+  return defKeys.reduce((acc,dk)=>acc*atkMul(atkKey,dk),1);
+}
+/* 技タイプ(複合可)が単体/複合防御に与える倍率。複数技タイプなら各技の最大値を採用 */
+function moveMulVsMulti(atkKeys, defKeys){
+  return Math.max(...atkKeys.map(ak=>atkMulVsMulti(ak,defKeys)));
+}
+
+/* 表示用: 倍率→スタイル */
+function styleForMul(mul){
+  if(mul === 0)   return {color:"var(--c-none)",   dash:false, key:"none"};
+  if(mul >= 4)    return {color:"var(--c-supereff)",dash:false, key:"super"};
+  if(mul === 2)   return {color:"var(--c-eff)",     dash:false, key:"eff"};
+  if(mul === 0.5) return {color:"var(--c-half)",    dash:false, key:"half"};
+  if(mul === 0.25)return {color:"var(--c-quarter)", dash:false, key:"quarter"};
+  return null; // 等倍(1)は非表示
+}
+
+/* =============== 状態 =============== */
+let mode = "single";       // single / dual / move
+let atkOn = true;
+let defOn = true;
+let selectedKeys = ["water"]; // 中心（複合/技タイプは複数選択可）
+
+/* =============== DOM参照 =============== */
+const stage = document.getElementById('stage');
+const tabs = document.querySelectorAll('.tab');
+const toggleAtk = document.getElementById('toggle-atk');
+const toggleDef = document.getElementById('toggle-def');
+const typePicker = document.getElementById('type-picker');
+const legendRow = document.getElementById('legend-row');
+const tooltip = document.getElementById('tooltip');
+
+/* =============== 凡例描画 =============== */
+function buildLegend(){
+  const items = [
+    {label:"効果超抜群", sub:"(×4)", color:"var(--c-supereff)"},
+    {label:"効果抜群",   sub:"(×2)", color:"var(--c-eff)"},
+    {label:"いまひとつ", sub:"(×0.5)", color:"var(--c-half)"},
+    {label:"いまひとつ", sub:"(×0.25)", color:"var(--c-quarter)"},
+    {label:"効果なし",   sub:"(×0)", color:"var(--c-none)"},
+  ];
+  legendRow.innerHTML = items.map(it=>`
+    <div class="legend-item">
+      <svg class="legend-arrow" viewBox="0 0 60 10" preserveAspectRatio="none">
+        <line x1="1" y1="5" x2="46" y2="5" stroke="${it.color}" stroke-width="3"/>
+        <polygon points="46,0 60,5 46,10" fill="${it.color}"/>
+      </svg>
+      <div class="legend-text">${it.label}<br>${it.sub}</div>
+    </div>
+  `).join('');
+}
+buildLegend();
+
+/* =============== タブ切替 =============== */
+tabs.forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    tabs.forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    mode = tab.dataset.mode;
+    if(mode === 'single'){
+      selectedKeys = [selectedKeys[0] || 'water'];
+      typePicker.classList.remove('show');
+    } else {
+      // 複合/技タイプ: 選択チップを表示
+      if(selectedKeys.length < 1) selectedKeys = ['water'];
+      typePicker.classList.add('show');
+      buildPicker();
+    }
+    render();
+  });
+});
+
+toggleAtk.addEventListener('click', ()=>{
+  atkOn = !atkOn;
+  toggleAtk.classList.toggle('on', atkOn);
+  render();
+});
+toggleDef.addEventListener('click', ()=>{
+  defOn = !defOn;
+  toggleDef.classList.toggle('on', defOn);
+  render();
+});
+
+function buildPicker(){
+  typePicker.innerHTML = TYPES.map(t=>`
+    <div class="chip ${selectedKeys.includes(t.key)?'sel':''}" data-key="${t.key}">
+      <img src="${t.id}.png" onerror="this.style.display='none'">
+      ${t.ja}
+    </div>
+  `).join('');
+  typePicker.querySelectorAll('.chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      const k = chip.dataset.key;
+      const max = 2; // 複合タイプは最大2種
+      if(selectedKeys.includes(k)){
+        selectedKeys = selectedKeys.filter(x=>x!==k);
+        if(selectedKeys.length === 0) selectedKeys = [k];
+      } else {
+        if(selectedKeys.length >= max) selectedKeys.shift();
+        selectedKeys.push(k);
+      }
+      buildPicker();
+      render();
+    });
+  });
+}
+
+/* =============== 円形レイアウト & 描画 =============== */
+function render(){
+  const wrap = document.getElementById('stage-wrap');
+  const W = wrap.clientWidth;
+  const H = wrap.clientHeight;
+  const cx = W/2, cy = H/2;
+  const R = Math.min(W,H) * 0.36;       // 周囲ノードの半径
+  const centerNodeR = Math.min(W,H) * 0.135;
+  const nodeR = Math.min(W,H) * 0.052;
+
+  const centerKeys = selectedKeys;
+  // 単タイプモードは全タイプを周囲に表示（自分自身も含む）
+  const others = mode === 'single' ? TYPES : TYPES.filter(t=>!centerKeys.includes(t.key));
+
+  // 各タイプに対する表示用倍率を計算
+  const results = others.map(t=>{
+    let atkMulVal = null, defMulVal = null;
+    if(atkOn){
+      // 中心 → t への攻撃 (中心が技/複合タイプなら最大値ルール)
+      atkMulVal = moveMulVsMulti(centerKeys, [t.key]);
+    }
+    if(defOn && mode !== 'move'){
+      // t → 中心 への攻撃(中心の防御) 技タイプモードでは防御概念なし
+      defMulVal = atkMulVsMulti(t.key, centerKeys);
+    }
+    return {type:t, atkMulVal, defMulVal};
+  });
+
+  // 角度配置（原画像のような不均等ではなく均等配置で全17タイプを円周に）
+  const n = others.length;
+  const angleStep = (Math.PI*2)/n;
+  const startAngle = -Math.PI/2; // 上から開始
+  results.forEach((r,i)=>{
+    r.angle = startAngle + angleStep*i;
+    r.x = cx + R*Math.cos(r.angle);
+    r.y = cy + R*Math.sin(r.angle);
+  });
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}">`;
+
+  // ---- 矢印線 ----
+  results.forEach(r=>{
+    // 攻撃(実線): 中心→r
+    if(atkOn){
+      const st = styleForMul(r.atkMulVal);
+      if(st){
+        svg += drawArrow(cx,cy,r.x,r.y, centerNodeR, nodeR, st.color, false, `atk-${r.type.key}`);
+      }
+    }
+    // 防御(点線): r→中心
+    if(defOn && mode !== 'move'){
+      const st = styleForMul(r.defMulVal);
+      if(st){
+        svg += drawArrow(r.x,r.y,cx,cy, nodeR, centerNodeR, st.color, true, `def-${r.type.key}`);
+      }
+    }
+  });
+
+  // ---- 周囲ノード ----
+  results.forEach(r=>{
+    svg += drawNode(r.x, r.y, nodeR, r.type, false);
+  });
+
+  // ---- 中心ノード ----
+  if(centerKeys.length === 1){
+    const t = T[centerKeys[0]];
+    svg += drawNode(cx, cy, centerNodeR, t, true);
+  } else {
+    // 複合/技タイプ: 中心に2円重ね表示 + ラベル
+    svg += drawDualCenter(cx, cy, centerNodeR, centerKeys);
+  }
+
+  svg += `</svg>`;
+  stage.innerHTML = svg;
+
+  applyNodeImages();
+  attachNodeTapEvents();
+  attachTapToFullscreen();
+}
+
+/* SVG内のimageタグにhrefを設定し、読み込み失敗時は非表示にする */
+function applyNodeImages(){
+  stage.querySelectorAll('image.node-img[data-type-id]').forEach(img=>{
+    const id = img.getAttribute('data-type-id');
+    const href = `${id}.png`;
+    img.setAttributeNS('http://www.w3.org/1999/xlink','href', href);
+    img.setAttribute('href', href);
+    img.addEventListener('error', ()=>{ img.style.opacity = 0; });
+  });
+  // チップのプレビュー画像(imgタグ)は既にonerror属性で処理済み
+}
+
+/* 周囲ノードのタップでタイプ変更 */
+function attachNodeTapEvents(){
+  stage.querySelectorAll('[data-node-key]').forEach(el=>{
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const k = el.getAttribute('data-node-key');
+      if(mode === 'single'){
+        // 中心タイプをタップしたタイプに切替（周囲には全タイプ残る）
+        selectedKeys = [k];
+        render();
+      } else {
+        // 複合/技タイプ: chip選択と同じ動作
+        const max = 2;
+        if(selectedKeys.includes(k)){
+          selectedKeys = selectedKeys.filter(x=>x!==k);
+          if(selectedKeys.length===0) selectedKeys = [k];
+        } else {
+          if(selectedKeys.length >= max) selectedKeys.shift();
+          selectedKeys.push(k);
+        }
+        buildPicker();
+        render();
+      }
+    });
+  });
+}
+
+function drawArrow(x1,y1,x2,y2, r1,r2, color, dashed, id){
+  const dx = x2-x1, dy = y2-y1;
+  const dist = Math.sqrt(dx*dx+dy*dy) || 1;
+  const ux = dx/dist, uy = dy/dist;
+  const sx = x1 + ux*r1, sy = y1 + uy*r1;
+  const ex = x2 - ux*(r2+9), ey = y2 - uy*(r2+9);
+  const dash = dashed ? `stroke-dasharray="6 5"` : '';
+  const markerId = `arrow-${id}`;
+  return `
+    <defs>
+      <marker id="${markerId}" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+        <path d="M0,0 L6,3 L0,6 Z" fill="${color}"/>
+      </marker>
+    </defs>
+    <line x1="${sx}" y1="${sy}" x2="${ex}" y2="${ey}" stroke="${color}" stroke-width="2.6" ${dash} marker-end="url(#${markerId})" opacity="0.92"/>
+  `;
+}
+
+function drawNode(x,y,r,type,isCenter){
+  const clipId = `clip-${type.key}-${isCenter?'c':'o'}-${Math.round(x)}-${Math.round(y)}`;
+  const nodeAttr = isCenter ? '' : `data-node-key="${type.key}"`;
+  return `
+    <g ${nodeAttr}>
+      <circle class="node-circle ${isCenter?'center':''}" cx="${x}" cy="${y}" r="${r}" fill="${type.color}"></circle>
+      <clipPath id="${clipId}">
+        <circle cx="${x}" cy="${y}" r="${r}"></circle>
+      </clipPath>
+      <image class="node-img" data-type-id="${type.id}" x="${x-r}" y="${y-r}" width="${r*2}" height="${r*2}"
+        clip-path="url(#${clipId})" preserveAspectRatio="xMidYMid slice"/>
+    </g>
+  `;
+}
+
+function drawDualCenter(cx,cy,r,keys){
+  const t1 = T[keys[0]];
+  const t2 = keys[1] ? T[keys[1]] : null;
+  let g = `<g>`;
+  if(t2){
+    // 左右半円で色分け + それぞれの画像
+    const clipL = `clipL-${cx}-${cy}`;
+    const clipR = `clipR-${cx}-${cy}`;
+    g += `
+      <clipPath id="${clipL}"><path d="M ${cx} ${cy-r} A ${r} ${r} 0 0 0 ${cx} ${cy+r} Z"/></clipPath>
+      <clipPath id="${clipR}"><path d="M ${cx} ${cy-r} A ${r} ${r} 0 0 1 ${cx} ${cy+r} Z"/></clipPath>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="${t1.color}"></circle>
+      <path d="M ${cx} ${cy-r} A ${r} ${r} 0 0 1 ${cx} ${cy+r} Z" fill="${t2.color}"></path>
+      <image class="node-img" data-type-id="${t1.id}" x="${cx-r}" y="${cy-r}" width="${r*2}" height="${r*2}" clip-path="url(#${clipL})" preserveAspectRatio="xMidYMid slice"/>
+      <image class="node-img" data-type-id="${t2.id}" x="${cx-r}" y="${cy-r}" width="${r*2}" height="${r*2}" clip-path="url(#${clipR})" preserveAspectRatio="xMidYMid slice"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#fff" stroke-width="3"></circle>
+      <text class="node-label" x="${cx}" y="${cy+r+16}" font-size="13" style="paint-order: stroke; stroke: rgba(0,0,0,.6); stroke-width:3px;">${t1.ja}/${t2.ja}</text>
+    `;
+  } else {
+    g += drawNode(cx,cy,r,t1,true);
+  }
+  g += `</g>`;
+  return g;
+}
+
+/* =============== 全画面タップ =============== */
+let fsAttached = false;
+function attachTapToFullscreen(){
+  if(fsAttached) return;
+  fsAttached = true;
+  document.body.addEventListener('click', requestFS, {once:false});
+}
+function requestFS(){
+  const el = document.documentElement;
+  if(!document.fullscreenElement){
+    (el.requestFullscreen && el.requestFullscreen()) ||
+    (el.webkitRequestFullscreen && el.webkitRequestFullscreen()) ||
+    (el.msRequestFullscreen && el.msRequestFullscreen());
+  }
+  const hint = document.getElementById('fs-hint');
+  hint.classList.add('hide');
+}
+
+/* 初回ヒントは数秒後に自動で消す */
+setTimeout(()=>{
+  document.getElementById('fs-hint').classList.add('hide');
+}, 3500);
+
+/* =============== リサイズ対応 =============== */
+window.addEventListener('resize', render);
+window.addEventListener('orientationchange', ()=>setTimeout(render,200));
+
+/* 初期描画 */
+render();
+</script>
+</body>
+</html>
