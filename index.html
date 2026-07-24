@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>タイプ相性チャート</title>
+<title>タイプ相性チャート＋オリジナル技</title>
 <style>
   :root{
     --bg:#0e1116;
@@ -19,6 +19,10 @@
     --c-half:#4da8ff;     /* x0.5 */
     --c-quarter:#37d67a;  /* x0.25 */
     --c-none:#8892a0;     /* x0 */
+
+    --c-physical:#ff5e5e;
+    --c-special:#4da8ff;
+    --c-status:#6fcf97;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{
@@ -66,6 +70,7 @@
     display:flex; gap:8px;
     margin-top:8px;
   }
+  .toggles.hide{ display:none; }
   .toggle{
     flex:1;
     display:flex; align-items:center; justify-content:center; gap:6px;
@@ -91,7 +96,6 @@
   .toggle .box svg{ width:11px; height:11px; opacity:0; transition:opacity .1s; }
   .toggle.on .box svg{ opacity:1; }
 
-  /* タイプ選択チップ（複合/技タイプ用） */
   .type-picker{
     display:none;
     flex-wrap:wrap;
@@ -116,37 +120,117 @@
   .chip img{ width:14px; height:14px; border-radius:50%; object-fit:cover; }
   .chip.sel{ border-color:var(--accent); color:var(--text); background:rgba(77,168,255,.12); }
 
-  /* メインエリア(円グラフ) */
+  /* メインエリア */
   #stage-wrap{
     flex:1 1 auto;
     position:relative;
     min-height:0;
+    overflow:hidden;
   }
   #stage{
     position:absolute; inset:0;
     touch-action:none;
   }
-  svg{ width:100%; height:100%; display:block; }
-
-  .node-label{
-    font-size:12px;
+  /* 技一覧コンテナ */
+  #move-list{
+    position:absolute; inset:0;
+    overflow-y:auto;
+    padding:8px 10px 20px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    background:var(--bg);
+    -webkit-overflow-scrolling:touch;
+  }
+  .move-card{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:8px 12px;
+    display:grid;
+    grid-template-columns: auto 1fr auto;
+    gap:6px 12px;
+    align-items:center;
+  }
+  .move-name{
     font-weight:700;
-    fill:var(--text);
-    text-anchor:middle;
-    dominant-baseline:central;
-    pointer-events:none;
+    font-size:15px;
+    color:var(--text);
+    grid-column:1;
+    grid-row:1;
   }
-  .node-circle{
-    stroke:var(--line);
-    stroke-width:2px;
+  .move-type-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    padding:2px 8px 2px 4px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:600;
+    color:#fff;
+    background:var(--sub);
+    grid-column:2;
+    grid-row:1;
+    justify-self:start;
   }
-  .node-circle.center{
-    stroke:#fff;
-    stroke-width:3px;
+  .move-type-badge img{
+    width:18px; height:18px;
+    border-radius:50%;
+    object-fit:cover;
   }
-  .node-img{ pointer-events:none; }
+  .move-category{
+    grid-column:3;
+    grid-row:1;
+    font-size:12px;
+    padding:2px 10px;
+    border-radius:999px;
+    font-weight:600;
+    background:var(--panel);
+    border:1px solid var(--line);
+    color:var(--sub);
+  }
+  .move-category.physical{ border-color:var(--c-physical); color:var(--c-physical); }
+  .move-category.special{ border-color:var(--c-special); color:var(--c-special); }
+  .move-category.status{ border-color:var(--c-status); color:var(--c-status); }
 
-  .node-fallback-bg{ fill:#39404c; }
+  .move-details{
+    grid-column:1 / -1;
+    grid-row:2;
+    display:flex;
+    flex-wrap:wrap;
+    gap:4px 16px;
+    font-size:12px;
+    color:var(--sub);
+    border-top:1px solid var(--line);
+    padding-top:6px;
+  }
+  .move-details span{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+  }
+  .move-details .label{ color:var(--sub); font-weight:400; }
+  .move-details .value{ color:var(--text); font-weight:500; }
+  .move-effect{
+    grid-column:1 / -1;
+    grid-row:3;
+    font-size:12.5px;
+    color:var(--text);
+    background:var(--panel);
+    padding:4px 8px;
+    border-radius:6px;
+    border-left:3px solid var(--accent);
+  }
+  .move-effect .chance{
+    display:inline-block;
+    background:rgba(77,168,255,.15);
+    color:var(--accent);
+    font-weight:600;
+    padding:0 6px;
+    border-radius:4px;
+    margin-left:6px;
+    font-size:11px;
+  }
 
   /* 凡例 */
   #legend{
@@ -155,6 +239,8 @@
     border-top:1px solid var(--line);
     padding:8px 10px 10px;
   }
+  #legend.hide{ display:none; }
+
   .legend-row{
     display:flex;
     justify-content:space-between;
@@ -202,7 +288,6 @@
   }
   #fs-hint.hide{ opacity:0; }
 
-  /* センター詳細ツールチップ */
   #tooltip{
     position:absolute;
     left:50%; top:8px;
@@ -218,6 +303,11 @@
     z-index:10;
     pointer-events:none;
   }
+
+  /* スクロールバー */
+  #move-list::-webkit-scrollbar{ width:4px; }
+  #move-list::-webkit-scrollbar-track{ background:transparent; }
+  #move-list::-webkit-scrollbar-thumb{ background:var(--line); border-radius:4px; }
 </style>
 </head>
 <body>
@@ -227,10 +317,10 @@
     <div class="tabs">
       <div class="tab active" data-mode="single">単タイプ</div>
       <div class="tab" data-mode="dual">複合タイプ</div>
-      <div class="tab" data-mode="move">技タイプ</div>
+      <div class="tab" data-mode="original">オリジナル技</div>
     </div>
 
-    <div class="toggles">
+    <div class="toggles" id="toggles">
       <div class="toggle" id="toggle-atk">
         <div class="box"><svg viewBox="0 0 16 16"><path d="M2 8l4 4 8-8" stroke="#08131f" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         攻撃の相性
@@ -247,6 +337,7 @@
   <div id="stage-wrap">
     <div id="tooltip"></div>
     <div id="stage"></div>
+    <div id="move-list" style="display:none;"></div>
   </div>
 
   <div id="legend">
@@ -268,15 +359,9 @@
 <div id="fs-hint">タップして全画面表示</div>
 
 <script>
-/* =========================================================
-   タイプ定義（アルファベット順）
-   1 bug(むし) 2 dark(あく) 3 dragon(ドラゴン) 4 electric(でんき)
-   5 fairy(フェアリー) 6 fighting(かくとう) 7 fire(ほのお) 8 flying(ひこう)
-   9 ghost(ゴースト) 10 grass(くさ) 11 ground(じめん) 12 ice(こおり)
-   13 normal(ノーマル) 14 poison(どく) 15 psychic(エスパー) 16 rock(いわ)
-   17 steel(はがね) 18 water(みず)
-   画像は N.png (例: 18.png) を /mnt/user-data 等、同フォルダに配置してください。
-========================================================= */
+// ============================================================
+// タイプ定義
+// ============================================================
 const TYPES = [
   {id:1,  key:"bug",      ja:"むし",       color:"#8bab1e"},
   {id:2,  key:"dark",     ja:"あく",       color:"#6b5443"},
@@ -296,19 +381,194 @@ const TYPES = [
   {id:16, key:"rock",     ja:"いわ",       color:"#8a7a1e"},
   {id:17, key:"steel",    ja:"はがね",     color:"#8a94a3"},
   {id:18, key:"water",    ja:"みず",       color:"#4d8ce8"},
-  {id:19, key:"sound",   ja:"サウンド",   color:"#e040fb"},
-  {id:20, key:"shine",   ja:"シャイン",   color:"#ffd600"},
+  {id:19, key:"sound",    ja:"サウンド",   color:"#e040fb"},
+  {id:20, key:"shine",    ja:"シャイン",   color:"#ffd600"},
 ];
 const T = Object.fromEntries(TYPES.map(t=>[t.key,t]));
 const idToKey = Object.fromEntries(TYPES.map(t=>[t.id,t.key]));
+const typeNameToId = Object.fromEntries(TYPES.map(t=>[t.ja, t.id]));
 
-/* 攻撃側キーが、防御側キーに対して与える倍率(基本値は1: 通常)
-   ここでは「1と異なる」ものだけ記述。倍率は 2 / 0.5 / 0 のいずれか。
-   複合防御側は掛け算で自動算出。技タイプ複合は最大値を採用（本家仕様）。
-*/
+// ============================================================
+// オリジナル技データ (完全版)
+// ============================================================
+const MOVES = [
+  // むし
+  { name:"しゅうげき", type:"むし", category:"物理", power:90, accuracy:95, pp:10, priority:0, effect:"たまに相手を混乱にさせる", chance:30 },
+  { name:"よってたかる", type:"むし", category:"物理", power:120, accuracy:100, pp:10, priority:-7, effect:null, chance:null },
+  { name:"ジェットスピア", type:"むし", category:"物理", power:80, accuracy:100, pp:5, priority:3, effect:null, chance:null },
+  { name:"バグノイズ", type:"むし", category:"特殊", power:90, accuracy:100, pp:10, priority:0, effect:"たまに相手の特攻を下げる", chance:10 },
+  { name:"かくらんひこう", type:"むし", category:"特殊", power:85, accuracy:95, pp:10, priority:0, effect:"たまに相手を混乱にさせる", chance:30 },
+  { name:"翔音セレナーデ", type:"むし", category:"特殊", power:100, accuracy:100, pp:3, priority:0, effect:"相手の回避率を2段階下げる", chance:100 },
+  // あく
+  { name:"ぶちこわす", type:"あく", category:"物理", power:120, accuracy:100, pp:5, priority:0, effect:"自分の防御と特防が下がる", chance:100 },
+  { name:"じゃあくなキバ", type:"あく", category:"物理", power:100, accuracy:100, pp:10, priority:0, effect:"自分の防御と特防が下がる", chance:30 },
+  { name:"ダークロアー", type:"あく", category:"特殊", power:40, accuracy:100, pp:10, priority:1, effect:null, chance:null },
+  { name:"ライフドレイン", type:"あく", category:"特殊", power:60, accuracy:100, pp:10, priority:0, effect:"与えたダメージの半分回復", chance:100 },
+  { name:"グリムハウル", type:"あく", category:"特殊", power:150, accuracy:70, pp:5, priority:0, effect:"与えたダメージの半分、自分もダメージを受ける", chance:null },
+  { name:"ナイトアセット", type:"あく", category:"特殊", power:150, accuracy:100, pp:15, priority:0, effect:"自分の命中率が2段階下がる", chance:100 },
+{ name:"せつなのよる", type:"あく", category:"特殊", power:80, accuracy:95, pp:10, priority:0, effect:"たまに相手の命中を下げる", chance:30 },
+  // ドラゴン
+  { name:"ダイナソード", type:"ドラゴン", category:"物理", power:70, accuracy:100, pp:10, priority:0, effect:"たまに相手を怯まさせる", chance:30 },
+  { name:"はしゃのつめあと", type:"ドラゴン", category:"物理", power:80, accuracy:100, pp:10, priority:0, effect:"相手の防御を下げる", chance:100 },
+  { name:"プルスウルトラ", type:"ドラゴン", category:"物理", power:60, accuracy:100, pp:5, priority:1, effect:null, chance:null },
+  { name:"穿星波", type:"ドラゴン", category:"特殊", power:70, accuracy:100, pp:3, priority:1, effect:null, chance:null },
+  { name:"リューズバスター", type:"ドラゴン", category:"特殊", power:80, accuracy:100, pp:10, priority:0, effect:"相手の特防を下げる", chance:100 },
+  // でんき
+  { name:"アクセルボルト", type:"でんき", category:"物理", power:60, accuracy:100, pp:15, priority:0, effect:"自分の素早さが上がる", chance:100 },
+  { name:"エレキスピン", type:"でんき", category:"物理", power:110, accuracy:80, pp:15, priority:0, effect:"相手をたまに麻痺させる", chance:30 },
+  { name:"ラジエートパルス", type:"でんき", category:"物理", power:120, accuracy:100, pp:10, priority:0, effect:"相手に与えたダメージの33%、自分もダメージを受ける", chance:null },
+  { name:"カッターボルト", type:"でんき", category:"物理", power:90, accuracy:100, pp:10, priority:0, effect:"相手をたまに麻痺させる", chance:10 },
+  { name:"マッハボルト", type:"でんき", category:"特殊", power:40, accuracy:100, pp:10, priority:2, effect:null, chance:null },
+  { name:"ルクシオンエア", type:"でんき", category:"特殊", power:130, accuracy:90, pp:5, priority:0, effect:"自分の特攻が2段階下がる", chance:100 },
+  { name:"ルクスノヴァ", type:"でんき", category:"特殊", power:80, accuracy:95, pp:10, priority:0, effect:"たまに麻痺させて、たまに怯ませる", chance:20 },
+  // フェアリー
+  { name:"フェアリースピネル", type:"フェアリー", category:"物理", power:110, accuracy:90, pp:10, priority:0, effect:null, chance:null },
+  { name:"メロメロパンチ", type:"フェアリー", category:"物理", power:60, accuracy:100, pp:10, priority:0, effect:"相手の攻撃をたまに下げる", chance:10 },
+  { name:"ムーンインパクト", type:"フェアリー", category:"物理", power:120, accuracy:100, pp:10, priority:0, effect:"相手に与えたダメージの33%、自分もダメージを受ける", chance:null },
+  { name:"うさぎとび", type:"フェアリー", category:"物理", power:70, accuracy:100, pp:10, priority:0, effect:"相手の攻撃を2段階下げる", chance:100 },
+  { name:"パワーハグ", type:"フェアリー", category:"物理", power:70, accuracy:100, pp:10, priority:0, effect:"相手の特攻を2段階下げる", chance:100 },
+  { name:"あやかしのキリ", type:"フェアリー", category:"特殊", power:80, accuracy:100, pp:10, priority:0, effect:"相手の回避率を2段階下げる", chance:100 },
+  { name:"トワイライト", type:"フェアリー", category:"変化", power:null, accuracy:null, pp:15, priority:0, effect:"自分の素早さと命中率を上げる", chance:100 },
+  { name:"★どかもりスイーツ", type:"フェアリー", category:"特殊", power:100, accuracy:"必中", pp:3, priority:0, effect:null, chance:null },
+  // かくとう
+  { name:"しゅうきほう", type:"かくとう", category:"特殊", power:150, accuracy:90, pp:5, priority:0, effect:"この攻撃で倒せなかった場合、相手の攻撃と特攻を2段階上げてしまう", chance:100 },
+  { name:"ファイナルラウンド", type:"かくとう", category:"変化", power:null, accuracy:null, pp:1, priority:7, effect:"自分の攻撃,特攻,防御,特防,素早さ,命中率を上げる", chance:100 },
+  { name:"マグナムショット", type:"かくとう", category:"特殊", power:70, accuracy:100, pp:15, priority:0, effect:"自分の命中率を2段階上げる", chance:100 },
+  { name:"白の衝撃", type:"かくとう", category:"特殊", power:80, accuracy:100, pp:1, priority:0, effect:"相手の攻撃と特攻を半分にする", chance:100 },
+{ name:"いあい", type:"かくとう", category:"変化", power:null, accuracy:null, pp:1, priority:0, effect:"自分の攻撃をぐぐーんと上げる", chance:100 },
+  // ほのお
+  { name:"せんこうはなび", type:"ほのお", category:"物理", power:90, accuracy:80, pp:5, priority:1, effect:null, chance:null },
+  { name:"ねたみのいかり", type:"ほのお", category:"物理", power:90, accuracy:100, pp:5, priority:0, effect:"たまに自分が混乱になる", chance:30 },
+  { name:"きたかぜたいよう", type:"ほのお", category:"特殊", power:40, accuracy:100, pp:5, priority:0, effect:"攻撃後、天候を〈ひでり〉に変える", chance:100 },
+  { name:"かさいせんぷう", type:"ほのお", category:"特殊", power:110, accuracy:100, pp:10, priority:0, effect:"自分がやけどになる", chance:100 },
+  { name:"ラピッドフレア", type:"ほのお", category:"特殊", power:100, accuracy:100, pp:5, priority:0, effect:"相手の素早さを上昇させる", chance:100 },
+  { name:"★再炎の焔", type:"ほのお", category:"特殊", power:100, accuracy:70, pp:3, priority:0, effect:"与えたダメージの半分回復する", chance:100 },
+  // ひこう
+  { name:"ジェットシュート", type:"ひこう", category:"物理", power:95, accuracy:90, pp:15, priority:0, effect:null, chance:null },
+  { name:"ミラージュクロー", type:"ひこう", category:"物理", power:60, accuracy:100, pp:15, priority:0, effect:"相手の命中率を3段階下げる", chance:100 },
+  { name:"メテオウィング", type:"ひこう", category:"物理", power:120, accuracy:100, pp:5, priority:0, effect:"自分の防御と特防が下がる", chance:100 },
+  { name:"かみかぜ", type:"ひこう", category:"特殊", power:80, accuracy:100, pp:10, priority:0, effect:null, chance:null },
+  { name:"ジェットきりゅう", type:"ひこう", category:"特殊", power:40, accuracy:100, pp:15, priority:2, effect:"たまに怯ませる", chance:10 },
+  { name:"しはいのかぜ", type:"ひこう", category:"特殊", power:120, accuracy:70, pp:10, priority:0, effect:"たまに相手を混乱にさせる", chance:20 },
+  { name:"かみわたし", type:"ひこう", category:"特殊", power:80, accuracy:80, pp:10, priority:0, effect:"自分の命中率が下がり、回避率が上がる", chance:100 },
+  { name:"★大旋風", type:"ひこう", category:"特殊", power:150, accuracy:100, pp:3, priority:0, effect:"自分がこんらんになる", chance:100 },
+{ name:"ターボストーム", type:"ひこう", category:"特殊", power:80, accuracy:100, pp:10, priority:0, effect:"自分の素早さが高いほど威力があがる(最大140)", chance:null },
+  // ゴースト
+  { name:"いのちとり", type:"ゴースト", category:"物理", power:100, accuracy:70, pp:5, priority:0, effect:"与えたダメージの半分回復", chance:100 },
+  { name:"あんやのつばさ", type:"ゴースト", category:"物理", power:80, accuracy:100, pp:10, priority:0, effect:"相手の回避率を下げる", chance:100 },
+  { name:"朧一閃", type:"ゴースト", category:"物理", power:200, accuracy:"必中", pp:1, priority:0, effect:"自分が状態異常〈ねむり〉になる", chance:100 },
+{ name:"ナラクおとし", type:"ゴースト", category:"物理", power:80, accuracy:90, pp:5, priority:0, effect:"与えたダメージの4分の3回復", chance:100 },
+  { name:"のりうつる", type:"ゴースト", category:"特殊", power:120, accuracy:75, pp:5, priority:0, effect:"たまに相手を怯ませる", chance:30 },
+  { name:"カオストリック", type:"ゴースト", category:"特殊", power:100, accuracy:100, pp:10, priority:0, effect:"自分のランダムな能力が上がったり下がったりする", chance:100 },
+  { name:"カースブラスト", type:"ゴースト", category:"特殊", power:120, accuracy:90, pp:5, priority:0, effect:"自分が状態異常〈もうどく〉になる", chance:100 },
+  { name:"魔女裁判", type:"ゴースト", category:"特殊", power:80, accuracy:100, pp:5, priority:0, effect:"効果がいまひとつにならず、ノーマルタイプに無効にされない。〈ほのおタイプ〉には無効", chance:null },
+  // くさ
+  { name:"ナチュラルドロー", type:"くさ", category:"物理", power:100, accuracy:100, pp:15, priority:0, effect:null, chance:null },
+  { name:"くるいざき", type:"くさ", category:"物理", power:60, accuracy:100, pp:10, priority:0, effect:"自分の攻撃が上昇する", chance:100 },
+  { name:"グロウブレード", type:"くさ", category:"物理", power:150, accuracy:100, pp:5, priority:0, effect:"自分の命中率が2段階下がる", chance:100 },
+  { name:"★命芽穿", type:"くさ", category:"物理", power:200, accuracy:100, pp:10, priority:0, effect:"1ターン目に自分の『こうげき』ランクを1段階上げ、2ターン目で攻撃する", chance:100 },
+  { name:"コットンパワー", type:"くさ", category:"変化", power:null, accuracy:null, pp:5, priority:0, effect:"自分の防御と素早さを2段階上昇させる", chance:100 },
+  { name:"いばらがため", type:"くさ", category:"特殊", power:80, accuracy:100, pp:15, priority:0, effect:"与えたダメージの75%分回復する", chance:null },
+  { name:"ウィンドミル", type:"くさ", category:"特殊", power:150, accuracy:"必中", pp:15, priority:0, effect:"自分の特攻が3段階下がる", chance:100 },
+  { name:"弓張月", type:"くさ", category:"特殊", power:40, accuracy:100, pp:10, priority:0, effect:"くさタイプの技の相性を反対にしてダメージを与える", chance:null },
+  { name:"アネモネルージュ", type:"くさ", category:"特殊", power:"???", accuracy:100, pp:10, priority:0, effect:"①威力は相手ポケモンの合計種族値により変わる(500より高いほど威力が上がり最大100)。②与えたダメージ分回復する。③弓張月の効果を持つ", chance:null },
+  // じめん
+  { name:"ソイルシュート", type:"じめん", category:"物理", power:110, accuracy:90, pp:10, priority:0, effect:null, chance:null },
+  { name:"じゅうおうのキバ", type:"じめん", category:"物理", power:100, accuracy:"必中", pp:10, priority:0, effect:"自分の防御が下がる", chance:100 },
+  { name:"★天変地異", type:"じめん", category:"物理", power:220, accuracy:100, pp:10, priority:0, effect:"1ターン目に自分の『とくぼう』ランクを1段階上げ、2ターン目で攻撃する", chance:100 },
+  { name:"韋駄天", type:"じめん", category:"物理", power:120, accuracy:100, pp:10, priority:-1, effect:null, chance:null },
+{ name:"サンドレイク", type:"じめん", category:"物理", power:80, accuracy:100, pp:10, priority:0, effect:"相手の特防を下げる", chance:100 },
+  { name:"アースライザー", type:"じめん", category:"特殊", power:140, accuracy:"必中", pp:10, priority:0, effect:"自分の特攻,特防,素早さが下がる", chance:100 },
+  { name:"ガイアキューブ", type:"じめん", category:"特殊", power:200, accuracy:100, pp:5, priority:0, effect:"この攻撃で倒せなかった場合、相手の全能力が2段階上がってしまう", chance:100 },
+  { name:"マグナライズ", type:"じめん", category:"変化", power:null, accuracy:null, pp:15, priority:0, effect:"自分の攻撃,特攻,特防を上げて、素早さを下げる", chance:100 },
+  // こおり
+  { name:"せいひょう", type:"こおり", category:"物理", power:60, accuracy:100, pp:10, priority:0, effect:"自分の特攻が上昇する", chance:100 },
+  { name:"冰豹牙", type:"こおり", category:"物理", power:50, accuracy:100, pp:5, priority:0, effect:"自分の攻撃と素早さが上昇する", chance:100 },
+  { name:"アイシング", type:"こおり", category:"物理", power:80, accuracy:100, pp:15, priority:0, effect:null, chance:null },
+  { name:"スリートスピア", type:"こおり", category:"物理", power:100, accuracy:100, pp:5, priority:0, effect:"相手をたまに怯ませる", chance:30 },
+  { name:"ブリザード", type:"こおり", category:"特殊", power:220, accuracy:"必中", pp:1, priority:0, effect:"自分が状態異常〈こおり〉になる", chance:100 },
+  { name:"ヘイルストーム", type:"こおり", category:"特殊", power:150, accuracy:50, pp:5, priority:0, effect:"相手に与えたダメージの半分、自分もダメージを受ける", chance:null },
+  { name:"アイシイ", type:"こおり", category:"変化", power:null, accuracy:null, pp:1, priority:0, effect:"自分の回避率と素早さを2段階上げる", chance:100 },
+  // ノーマル
+  { name:"スピンテール", type:"ノーマル", category:"物理", power:100, accuracy:100, pp:15, priority:0, effect:null, chance:null },
+  { name:"ドラマチックな登場", type:"ノーマル", category:"物理", power:200, accuracy:100, pp:1, priority:0, effect:null, chance:null },
+  { name:"きりふだ", type:"ノーマル", category:"特殊", power:100, accuracy:"必中", pp:15, priority:0, effect:"自分の命中率が3段階上昇する", chance:100 },
+{ name:"うちとる", type:"ノーマル", category:"物理", power:200, accuracy:100, pp:5, priority:0, effect:"自分の攻撃がガクッと下がる", chance:100 },
+  // どく
+  { name:"ポイズンリーフ", type:"どく", category:"物理", power:65, accuracy:100, pp:15, priority:0, effect:"相手をたまに猛毒にする", chance:30 },
+  { name:"ブラッドネイル", type:"どく", category:"物理", power:150, accuracy:100, pp:15, priority:0, effect:"自分が状態異常〈混乱〉になる", chance:100 },
+  { name:"ふしょくのきり", type:"どく", category:"特殊", power:150, accuracy:50, pp:5, priority:0, effect:"相手をたまに猛毒にする", chance:50 },
+  { name:"バッドポイズン", type:"どく", category:"特殊", power:100, accuracy:100, pp:10, priority:0, effect:"相手をたまに毒にする", chance:30 },
+  { name:"カオスウェーブ", type:"どく", category:"特殊", power:120, accuracy:100, pp:5, priority:0, effect:"自分が状態異常〈猛毒〉になる", chance:100 },
+  // エスパー
+  { name:"ふゆのひざし", type:"エスパー", category:"物理", power:70, accuracy:100, pp:5, priority:1, effect:"相手をたまに怯ませる", chance:10 },
+  { name:"バリアクラッシュ", type:"エスパー", category:"物理", power:80, accuracy:100, pp:15, priority:0, effect:"相手の防御を下げる", chance:100 },
+  { name:"オルタナティブ", type:"エスパー", category:"物理", power:120, accuracy:100, pp:10, priority:-7, effect:null, chance:null },
+  { name:"せんせいじゅつ", type:"エスパー", category:"特殊", power:50, accuracy:100, pp:15, priority:1, effect:null, chance:null },
+  { name:"御神楽", type:"エスパー", category:"変化", power:null, accuracy:null, pp:15, priority:0, effect:"自分の攻撃,特攻,素早さを上げる", chance:100 },
+  { name:"アルカナフール", type:"エスパー", category:"特殊", power:80, accuracy:"必中", pp:10, priority:0, effect:"この技は〈あくタイプ〉と〈くさタイプ〉にも効果抜群になる", chance:null },
+  // いわ
+  { name:"ついげき", type:"いわ", category:"物理", power:80, accuracy:100, pp:15, priority:0, effect:"相手がダメージを既に受けていた場合、威力が1.2倍(威力96)になる", chance:null },
+  { name:"グランボールダ", type:"いわ", category:"物理", power:130, accuracy:70, pp:5, priority:0, effect:"たまに怯ませる", chance:30 },
+  { name:"山麓崩壊", type:"いわ", category:"物理", power:200, accuracy:50, pp:5, priority:0, effect:"たまに怯ませる", chance:30 },
+  { name:"ジェムレーザー", type:"いわ", category:"特殊", power:120, accuracy:100, pp:10, priority:0, effect:"自分の特攻が下がる", chance:100 },
+  { name:"こだいのいぶき", type:"いわ", category:"特殊", power:40, accuracy:100, pp:10, priority:0, effect:"自分の特攻が上昇する", chance:100 },
+  { name:"グラベルブレス", type:"いわ", category:"特殊", power:120, accuracy:100, pp:15, priority:-7, effect:null, chance:null },
+  // はがね
+  { name:"斬鉄剣", type:"はがね", category:"物理", power:90, accuracy:95, pp:15, priority:0, effect:"たまに怯ませる", chance:10 },
+  { name:"デスラティス", type:"はがね", category:"物理", power:110, accuracy:100, pp:10, priority:0, effect:"自分の防御が下がる", chance:100 },
+  { name:"ランチャーアーム", type:"はがね", category:"物理", power:150, accuracy:"必中", pp:5, priority:0, effect:"相手の攻撃が低いほど威力が下がる(最小威力20)", chance:null },
+  { name:"ジオ・バスター", type:"はがね", category:"特殊", power:120, accuracy:100, pp:5, priority:0, effect:"この攻撃で倒せなかった場合、相手の攻撃と特攻が2段階上がる", chance:100 },
+  { name:"磁力線", type:"はがね", category:"特殊", power:120, accuracy:70, pp:10, priority:0, effect:"相手の特防を下げる", chance:100 },
+  { name:"スターダスト", type:"はがね", category:"特殊", power:70, accuracy:100, pp:5, priority:0, effect:"自分の防御と特防が上昇する", chance:100 },
+  { name:"ラディアカノン", type:"はがね", category:"特殊", power:150, accuracy:50, pp:5, priority:0, effect:"相手の特防が下がる", chance:100 },
+  // みず
+  { name:"マリンドロップ", type:"みず", category:"物理", power:65, accuracy:100, pp:15, priority:0, effect:"相手の特攻を下げる", chance:100 },
+  { name:"デプスレーン", type:"みず", category:"物理", power:100, accuracy:100, pp:10, priority:0, effect:"自分の攻撃が上昇する", chance:20 },
+  { name:"ディーナスバイト", type:"みず", category:"物理", power:120, accuracy:100, pp:5, priority:0, effect:"自分の防御と特防が下がる", chance:100 },
+  { name:"アクアボルト", type:"みず", category:"特殊", power:80, accuracy:100, pp:15, priority:0, effect:"相手をたまに麻痺させる", chance:30 },
+  { name:"アクアバリア", type:"みず", category:"変化", power:null, accuracy:null, pp:15, priority:0, effect:"自分の防御と特防が上昇する", chance:100 },
+  { name:"アクアスワール", type:"みず", category:"特殊", power:80, accuracy:95, pp:10, priority:0, effect:"相手の命中率を下げる", chance:10 },
+  { name:"ゆうだち", type:"みず", category:"特殊", power:80, accuracy:50, pp:10, priority:0, effect:"攻撃後、天候を〈雨〉に変える", chance:100 },
+  // サウンド
+  { name:"クラックショック", type:"サウンド", category:"物理", power:40, accuracy:100, pp:15, priority:0, effect:null, chance:null },
+  { name:"ランボア", type:"サウンド", category:"物理", power:60, accuracy:100, pp:15, priority:0, effect:null, chance:null },
+  { name:"ヘビー・バス", type:"サウンド", category:"物理", power:85, accuracy:95, pp:10, priority:0, effect:null, chance:null },
+  { name:"ドルケストラ", type:"サウンド", category:"物理", power:120, accuracy:100, pp:3, priority:0, effect:null, chance:null },
+  { name:"ヴィヴァーチェ", type:"サウンド", category:"物理", power:70, accuracy:100, pp:10, priority:0, effect:"相手に与えたダメージの25%回復する", chance:null },
+  { name:"デスアルト", type:"サウンド", category:"物理", power:120, accuracy:95, pp:5, priority:0, effect:"相手に与えたダメージの半分、自分も受ける", chance:null },
+  { name:"アンダンテ", type:"サウンド", category:"特殊", power:40, accuracy:100, pp:15, priority:0, effect:null, chance:null },
+  { name:"フェルマータ", type:"サウンド", category:"特殊", power:60, accuracy:100, pp:15, priority:0, effect:null, chance:null },
+  { name:"グラツィオーソ", type:"サウンド", category:"特殊", power:80, accuracy:100, pp:10, priority:0, effect:null, chance:null },
+  { name:"ミキシング", type:"サウンド", category:"変化", power:null, accuracy:null, pp:15, priority:0, effect:"自分の攻撃と特攻を2段階上げる", chance:100 },
+  { name:"シンフォニア", type:"サウンド", category:"特殊", power:120, accuracy:70, pp:5, priority:0, effect:null, chance:null },
+  { name:"アブソリュート", type:"サウンド", category:"特殊", power:40, accuracy:100, pp:10, priority:0, effect:"自分の特攻が上がる", chance:100 },
+  { name:"愛♡スクリ～ム!", type:"サウンド", category:"特殊", power:50, accuracy:100, pp:10, priority:0, effect:"相手に与えたダメージの75%回復する", chance:null },
+  { name:"レゾナンスクライ", type:"サウンド", category:"特殊", power:100, accuracy:100, pp:1, priority:0, effect:"相手をひるませる", chance:100 },
+  // シャイン
+  { name:"グロウバイト", type:"シャイン", category:"物理", power:65, accuracy:95, pp:15, priority:0, effect:"相手の命中率を下げることがある", chance:20 },
+  { name:"せいなるや", type:"シャイン", category:"物理", power:75, accuracy:95, pp:15, priority:0, effect:"相手の命中率を下げることがある", chance:20 },
+  { name:"バニシング", type:"シャイン", category:"物理", power:80, accuracy:100, pp:10, priority:0, effect:"相手の命中率を下げることがある", chance:10 },
+  { name:"ジャッジメント", type:"シャイン", category:"物理", power:150, accuracy:100, pp:5, priority:0, effect:"自分の攻撃が3段階下がる", chance:100 },
+  { name:"★ブロッサムライト", type:"シャイン", category:"物理", power:50, accuracy:100, pp:1, priority:0, effect:"相手が交代するまで、受けるダメージを2～4倍にする", chance:100 },
+  { name:"グローイクリプス", type:"シャイン", category:"物理", power:95, accuracy:90, pp:10, priority:0, effect:"相手の防御を下げることがある", chance:50 },
+  { name:"ひかりのやいば", type:"シャイン", category:"物理", power:100, accuracy:75, pp:10, priority:0, effect:"自分の攻撃が上がる", chance:100 },
+  { name:"スポットライト", type:"シャイン", category:"特殊", power:50, accuracy:100, pp:15, priority:0, effect:"相手の命中率を下げることがある", chance:10 },
+  { name:"サーチライト", type:"シャイン", category:"特殊", power:65, accuracy:100, pp:15, priority:0, effect:"相手の命中率を下げることがある", chance:10 },
+  { name:"シャイニング", type:"シャイン", category:"特殊", power:80, accuracy:100, pp:10, priority:0, effect:"相手の命中率を下げることがある", chance:10 },
+  { name:"フレア", type:"シャイン", category:"特殊", power:120, accuracy:100, pp:5, priority:0, effect:"自分の特攻が2段階下がる", chance:100 },
+  { name:"稲光", type:"シャイン", category:"特殊", power:100, accuracy:100, pp:1, priority:0, effect:"相手の命中率を3段階下げる", chance:100 },
+  { name:"はじけるせんこう", type:"シャイン", category:"特殊", power:100, accuracy:100, pp:10, priority:0, effect:"相手に与えたダメージの25%、自分も受ける", chance:null },
+  { name:"雪月光", type:"シャイン", category:"特殊", power:80, accuracy:100, pp:10, priority:0, effect:"相手に与えたダメージの25%回復する", chance:null },
+  { name:"まぶしいくらやみ", type:"シャイン", category:"特殊", power:150, accuracy:100, pp:5, priority:0, effect:"自分の命中率が2段階下がる", chance:100 },
+  { name:"終光", type:"シャイン", category:"特殊", power:99999, accuracy:30, pp:1, priority:0, effect:"一撃必殺技", chance:null },
+  { name:"ホーリーグレア", type:"シャイン", category:"特殊", power:80, accuracy:100, pp:5, priority:2, effect:null, chance:null },
+];
+
+// ============================================================
+// 相性表
+// ============================================================
 const CHART = {
-  // sound防御: ×2=ドラゴン,でんき,どく / ×0.5=むし,フェアリー,くさ,じめん,みず,サウンド
-  // shine防御: ×2=あく,こおり         / ×0.5=むし,かくとう,ほのお,ゴースト,くさ,サウンド,シャイン
   bug:      { dark:2, fire:0.5, flying:0.5, grass:2, sound:0.5, shine:0.5 },
   dark:     { dark:0.5, fairy:0.5, fighting:0.5, ghost:2, psychic:2, shine:2 },
   dragon:   { dragon:2, fairy:0, steel:0.5, sound:2 },
@@ -326,54 +586,56 @@ const CHART = {
   psychic:  { dark:0, fighting:2, poison:2, psychic:0.5, steel:0.5 },
   rock:     { bug:2, fighting:0.5, fire:2, flying:2, ground:0.5, ice:2, steel:0.5 },
   steel:    { electric:0.5, fairy:2, fire:0.5, ice:2, rock:2, steel:0.5, water:0.5 },
-  water:    { dragon:0.5, fire:2, grass:0.5, ground:2, rock:2, steel:0.5, water:0.5, sound:0.5 },
-  // サウンド: ×2=フェアリー,ひこう,はがね,みず / ×0.5=ドラゴン,でんき,どく,いわ,サウンド,シャイン
+  water:    { dragon:0.5, fire:2, grass:0.5, ground:2, rock:2, water:0.5, sound:0.5 },
   sound:    { fairy:2, flying:2, steel:2, water:2, dragon:0.5, electric:0.5, poison:0.5, rock:0.5, sound:0.5, shine:0.5 },
-  // シャイン: ×2=あく,ドラゴン,ゴースト / ×0.5=ほのお,くさ,こおり,サウンド,シャイン
   shine:    { dark:2, dragon:2, ghost:2, fire:0.5, grass:0.5, ice:0.5, sound:0.5, shine:0.5 },
 };
 
-/* 単体攻撃倍率取得 */
 function atkMul(atkKey, defKey){
   const row = CHART[atkKey];
   if(row && row[defKey] !== undefined) return row[defKey];
   return 1;
 }
-/* 複合防御に対する攻撃側の合計倍率 */
 function atkMulVsMulti(atkKey, defKeys){
   return defKeys.reduce((acc,dk)=>acc*atkMul(atkKey,dk),1);
 }
-/* 技タイプ(複合可)が単体/複合防御に与える倍率。複数技タイプなら各技の最大値を採用 */
 function moveMulVsMulti(atkKeys, defKeys){
   return Math.max(...atkKeys.map(ak=>atkMulVsMulti(ak,defKeys)));
 }
-
-/* 表示用: 倍率→スタイル */
 function styleForMul(mul){
   if(mul === 0)   return {color:"var(--c-none)",   dash:false, key:"none"};
   if(mul >= 4)    return {color:"var(--c-supereff)",dash:false, key:"super"};
   if(mul === 2)   return {color:"var(--c-eff)",     dash:false, key:"eff"};
   if(mul === 0.5) return {color:"var(--c-half)",    dash:false, key:"half"};
   if(mul === 0.25)return {color:"var(--c-quarter)", dash:false, key:"quarter"};
-  return null; // 等倍(1)は非表示
+  return null;
 }
 
-/* =============== 状態 =============== */
-let mode = "single";       // single / dual / move
+// ============================================================
+// 状態
+// ============================================================
+let mode = "single";
 let atkOn = false;
 let defOn = false;
-let selectedKeys = ["normal"]; // 中心（複合/技タイプは複数選択可）
+let selectedKeys = ["normal"];
 
-/* =============== DOM参照 =============== */
+// ============================================================
+// DOM参照
+// ============================================================
 const stage = document.getElementById('stage');
+const moveList = document.getElementById('move-list');
 const tabs = document.querySelectorAll('.tab');
 const toggleAtk = document.getElementById('toggle-atk');
 const toggleDef = document.getElementById('toggle-def');
+const toggles = document.getElementById('toggles');
 const typePicker = document.getElementById('type-picker');
+const legend = document.getElementById('legend');
 const legendRow = document.getElementById('legend-row');
 const tooltip = document.getElementById('tooltip');
 
-/* =============== 凡例描画 =============== */
+// ============================================================
+// 凡例 (色指定をインラインスタイルに変更)
+// ============================================================
 function buildLegend(){
   const items = [
     {label:"効果超抜群", sub:"(×4)", color:"var(--c-supereff)"},
@@ -385,8 +647,8 @@ function buildLegend(){
   legendRow.innerHTML = items.map(it=>`
     <div class="legend-item">
       <svg class="legend-arrow" viewBox="0 0 60 10" preserveAspectRatio="none">
-        <line x1="1" y1="5" x2="46" y2="5" stroke="${it.color}" stroke-width="3"/>
-        <polygon points="46,0 60,5 46,10" fill="${it.color}"/>
+        <line x1="1" y1="5" x2="46" y2="5" style="stroke:${it.color};" stroke-width="3"/>
+        <polygon points="46,0 60,5 46,10" style="fill:${it.color};"/>
       </svg>
       <div class="legend-text">${it.label}<br>${it.sub}</div>
     </div>
@@ -394,36 +656,63 @@ function buildLegend(){
 }
 buildLegend();
 
-/* =============== タブ切替 =============== */
+// ============================================================
+// タブ切替
+// ============================================================
 tabs.forEach(tab=>{
   tab.addEventListener('click', ()=>{
     tabs.forEach(t=>t.classList.remove('active'));
     tab.classList.add('active');
     mode = tab.dataset.mode;
-    if(mode === 'single'){
-      selectedKeys = [selectedKeys[0] || 'normal'];
-      typePicker.classList.remove('show');
-    } else {
-      // 複合/技タイプ: 選択チップを表示
-      if(selectedKeys.length < 1) selectedKeys = ['normal'];
+
+    if(mode === 'original') {
+      toggles.classList.add('hide');
+      legend.classList.add('hide');
       typePicker.classList.add('show');
+      if(selectedKeys.length < 1) selectedKeys = ['normal'];
       buildPicker();
+    } else {
+      toggles.classList.remove('hide');
+      legend.classList.remove('hide');
+      if(mode === 'single') {
+        typePicker.classList.remove('show');
+        if(selectedKeys.length > 1) selectedKeys = [selectedKeys[0] || 'normal'];
+      } else { // dual
+        typePicker.classList.add('show');
+        if(selectedKeys.length < 1) selectedKeys = ['normal'];
+        buildPicker();
+      }
     }
-    render();
+
+    if(mode === 'original') {
+      stage.style.display = 'none';
+      moveList.style.display = 'flex';
+      renderMoveList();
+    } else {
+      stage.style.display = 'block';
+      moveList.style.display = 'none';
+      render();
+    }
   });
 });
 
+// ============================================================
+// トグル
+// ============================================================
 toggleAtk.addEventListener('click', ()=>{
   atkOn = !atkOn;
   toggleAtk.classList.toggle('on', atkOn);
-  render();
+  if(mode !== 'original') render();
 });
 toggleDef.addEventListener('click', ()=>{
   defOn = !defOn;
   toggleDef.classList.toggle('on', defOn);
-  render();
+  if(mode !== 'original') render();
 });
 
+// ============================================================
+// タイプピッカー
+// ============================================================
 function buildPicker(){
   typePicker.innerHTML = TYPES.map(t=>`
     <div class="chip ${selectedKeys.includes(t.key)?'sel':''}" data-key="${t.key}">
@@ -434,7 +723,7 @@ function buildPicker(){
   typePicker.querySelectorAll('.chip').forEach(chip=>{
     chip.addEventListener('click', ()=>{
       const k = chip.dataset.key;
-      const max = 2; // 複合タイプは最大2種
+      const max = 2;
       if(selectedKeys.includes(k)){
         selectedKeys = selectedKeys.filter(x=>x!==k);
         if(selectedKeys.length === 0) selectedKeys = [k];
@@ -443,43 +732,41 @@ function buildPicker(){
         selectedKeys.push(k);
       }
       buildPicker();
-      render();
+      if(mode === 'original') renderMoveList();
+      else render();
     });
   });
 }
 
-/* =============== 円形レイアウト & 描画 =============== */
+// ============================================================
+// 円グラフ描画
+// ============================================================
 function render(){
   const wrap = document.getElementById('stage-wrap');
   const W = wrap.clientWidth;
   const H = wrap.clientHeight;
   const cx = W/2, cy = H/2;
-  const R = Math.min(W,H) * 0.36;       // 周囲ノードの半径
+  const R = Math.min(W,H) * 0.36;
   const centerNodeR = Math.min(W,H) * 0.135;
   const nodeR = Math.min(W,H) * 0.052;
 
   const centerKeys = selectedKeys;
-  // 単タイプモードは全タイプを周囲に表示（自分自身も含む）
   const others = mode === 'single' ? TYPES : TYPES.filter(t=>!centerKeys.includes(t.key));
 
-  // 各タイプに対する表示用倍率を計算
   const results = others.map(t=>{
     let atkMulVal = null, defMulVal = null;
     if(atkOn){
-      // 中心 → t への攻撃 (中心が技/複合タイプなら最大値ルール)
       atkMulVal = moveMulVsMulti(centerKeys, [t.key]);
     }
     if(defOn && mode !== 'move'){
-      // t → 中心 への攻撃(中心の防御) 技タイプモードでは防御概念なし
       defMulVal = atkMulVsMulti(t.key, centerKeys);
     }
     return {type:t, atkMulVal, defMulVal};
   });
 
-  // 角度配置（原画像のような不均等ではなく均等配置で全17タイプを円周に）
   const n = others.length;
   const angleStep = (Math.PI*2)/n;
-  const startAngle = -Math.PI/2; // 上から開始
+  const startAngle = -Math.PI/2;
   results.forEach((r,i)=>{
     r.angle = startAngle + angleStep*i;
     r.x = cx + R*Math.cos(r.angle);
@@ -488,16 +775,13 @@ function render(){
 
   let svg = `<svg viewBox="0 0 ${W} ${H}">`;
 
-  // ---- 矢印線 ----
   results.forEach(r=>{
-    // 攻撃(実線): 中心→r
     if(atkOn){
       const st = styleForMul(r.atkMulVal);
       if(st){
         svg += drawArrow(cx,cy,r.x,r.y, centerNodeR, nodeR, st.color, false, `atk-${r.type.key}`);
       }
     }
-    // 防御(点線): r→中心
     if(defOn && mode !== 'move'){
       const st = styleForMul(r.defMulVal);
       if(st){
@@ -506,66 +790,22 @@ function render(){
     }
   });
 
-  // ---- 周囲ノード ----
   results.forEach(r=>{
     svg += drawNode(r.x, r.y, nodeR, r.type, false);
   });
 
-  // ---- 中心ノード ----
   if(centerKeys.length === 1){
     const t = T[centerKeys[0]];
     svg += drawNode(cx, cy, centerNodeR, t, true);
   } else {
-    // 複合/技タイプ: 中心に2円重ね表示 + ラベル
     svg += drawDualCenter(cx, cy, centerNodeR, centerKeys);
   }
 
   svg += `</svg>`;
   stage.innerHTML = svg;
-
   applyNodeImages();
   attachNodeTapEvents();
   attachTapToFullscreen();
-}
-
-/* SVG内のimageタグにhrefを設定し、読み込み失敗時は非表示にする */
-function applyNodeImages(){
-  stage.querySelectorAll('image.node-img[data-type-id]').forEach(img=>{
-    const id = img.getAttribute('data-type-id');
-    const href = `${id}.png`;
-    img.setAttributeNS('http://www.w3.org/1999/xlink','href', href);
-    img.setAttribute('href', href);
-    img.addEventListener('error', ()=>{ img.style.opacity = 0; });
-  });
-  // チップのプレビュー画像(imgタグ)は既にonerror属性で処理済み
-}
-
-/* 周囲ノードのタップでタイプ変更 */
-function attachNodeTapEvents(){
-  stage.querySelectorAll('[data-node-key]').forEach(el=>{
-    el.style.cursor = 'pointer';
-    el.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      const k = el.getAttribute('data-node-key');
-      if(mode === 'single'){
-        // 中心タイプをタップしたタイプに切替（周囲には全タイプ残る）
-        selectedKeys = [k];
-        render();
-      } else {
-        // 複合/技タイプ: chip選択と同じ動作
-        const max = 2;
-        if(selectedKeys.includes(k)){
-          selectedKeys = selectedKeys.filter(x=>x!==k);
-          if(selectedKeys.length===0) selectedKeys = [k];
-        } else {
-          if(selectedKeys.length >= max) selectedKeys.shift();
-          selectedKeys.push(k);
-        }
-        buildPicker();
-        render();
-      }
-    });
-  });
 }
 
 function drawArrow(x1,y1,x2,y2, r1,r2, color, dashed, id){
@@ -589,9 +829,10 @@ function drawArrow(x1,y1,x2,y2, r1,r2, color, dashed, id){
 function drawNode(x,y,r,type,isCenter){
   const clipId = `clip-${type.key}-${isCenter?'c':'o'}-${Math.round(x)}-${Math.round(y)}`;
   const nodeAttr = isCenter ? '' : `data-node-key="${type.key}"`;
+  // 背景の塗りつぶし円を削除（fill="none"）
   return `
     <g ${nodeAttr}>
-      <circle class="node-circle ${isCenter?'center':''}" cx="${x}" cy="${y}" r="${r}" fill="${type.color}"></circle>
+      <circle class="node-circle ${isCenter?'center':''}" cx="${x}" cy="${y}" r="${r}" fill="none"></circle>
       <clipPath id="${clipId}">
         <circle cx="${x}" cy="${y}" r="${r}"></circle>
       </clipPath>
@@ -606,7 +847,6 @@ function drawDualCenter(cx,cy,r,keys){
   const t2 = keys[1] ? T[keys[1]] : null;
   let g = `<g>`;
   if(t2){
-    // 左右半円で色分け + それぞれの画像
     const clipL = `clipL-${cx}-${cy}`;
     const clipR = `clipR-${cx}-${cy}`;
     g += `
@@ -626,7 +866,99 @@ function drawDualCenter(cx,cy,r,keys){
   return g;
 }
 
-/* =============== 全画面タップ =============== */
+function applyNodeImages(){
+  stage.querySelectorAll('image.node-img[data-type-id]').forEach(img=>{
+    const id = img.getAttribute('data-type-id');
+    const href = `${id}.png`;
+    img.setAttributeNS('http://www.w3.org/1999/xlink','href', href);
+    img.setAttribute('href', href);
+    img.addEventListener('error', ()=>{ img.style.opacity = 0; });
+  });
+}
+
+function attachNodeTapEvents(){
+  stage.querySelectorAll('[data-node-key]').forEach(el=>{
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const k = el.getAttribute('data-node-key');
+      if(mode === 'single'){
+        selectedKeys = [k];
+        render();
+      } else {
+        const max = 2;
+        if(selectedKeys.includes(k)){
+          selectedKeys = selectedKeys.filter(x=>x!==k);
+          if(selectedKeys.length===0) selectedKeys = [k];
+        } else {
+          if(selectedKeys.length >= max) selectedKeys.shift();
+          selectedKeys.push(k);
+        }
+        buildPicker();
+        render();
+      }
+    });
+  });
+}
+
+// ============================================================
+// オリジナル技一覧描画
+// ============================================================
+function renderMoveList(){
+  let filtered = MOVES;
+  if(selectedKeys.length > 0) {
+    const selectedJas = selectedKeys.map(k=>T[k]?.ja).filter(Boolean);
+    if(selectedJas.length > 0) {
+      filtered = MOVES.filter(m => selectedJas.includes(m.type));
+    }
+  }
+
+  if(filtered.length === 0) {
+    moveList.innerHTML = `<div style="color:var(--sub);text-align:center;padding:30px 0;">該当する技がありません</div>`;
+    return;
+  }
+
+  let html = '';
+  filtered.forEach(m => {
+    const typeObj = TYPES.find(t=>t.ja===m.type);
+    const typeId = typeObj ? typeObj.id : 0;
+    const color = typeObj ? typeObj.color : '#8892a0';
+    const catClass = m.category === '物理' ? 'physical' : (m.category === '特殊' ? 'special' : 'status');
+    const powerStr = (m.power !== null && m.power !== undefined) ? m.power : '--';
+    const accStr = (m.accuracy !== null && m.accuracy !== undefined) ? m.accuracy : '--';
+    const chanceStr = (m.chance !== null && m.chance !== undefined) ? `${m.chance}%` : '--';
+    const effectStr = m.effect || '--';
+    const priorityStr = (m.priority !== undefined && m.priority !== 0) ? (m.priority > 0 ? `+${m.priority}` : `${m.priority}`) : '--';
+
+    html += `
+      <div class="move-card">
+        <div class="move-name">${m.name}</div>
+        <div class="move-type-badge" style="background:${color};">
+          ${typeId ? `<img src="${typeId}.png" onerror="this.style.display='none'">` : ''}
+          ${m.type}
+        </div>
+        <div class="move-category ${catClass}">${m.category}</div>
+        <div class="move-details">
+          <span><span class="label">威力</span><span class="value">${powerStr}</span></span>
+          <span><span class="label">命中</span><span class="value">${accStr}</span></span>
+          <span><span class="label">PP</span><span class="value">${m.pp}</span></span>
+          <span><span class="label">優先度</span><span class="value">${priorityStr}</span></span>
+          <span><span class="label">発動率</span><span class="value">${chanceStr}</span></span>
+        </div>
+        <div class="move-effect">
+          ${effectStr}
+          ${m.chance ? `<span class="chance">${m.chance}%</span>` : ''}
+        </div>
+      </div>
+    `;
+  });
+
+  moveList.innerHTML = html;
+}
+
+// ============================================================
+// 全画面タップ
+// ============================================================
 let fsAttached = false;
 function attachTapToFullscreen(){
   if(fsAttached) return;
@@ -640,20 +972,32 @@ function requestFS(){
     (el.webkitRequestFullscreen && el.webkitRequestFullscreen()) ||
     (el.msRequestFullscreen && el.msRequestFullscreen());
   }
-  const hint = document.getElementById('fs-hint');
-  hint.classList.add('hide');
+  document.getElementById('fs-hint').classList.add('hide');
 }
-
-/* 初回ヒントは数秒後に自動で消す */
 setTimeout(()=>{
   document.getElementById('fs-hint').classList.add('hide');
 }, 3500);
 
-/* =============== リサイズ対応 =============== */
-window.addEventListener('resize', render);
-window.addEventListener('orientationchange', ()=>setTimeout(render,200));
+// ============================================================
+// リサイズ対応
+// ============================================================
+window.addEventListener('resize', ()=>{
+  if(mode === 'original') renderMoveList();
+  else render();
+});
+window.addEventListener('orientationchange', ()=>{
+  setTimeout(()=>{
+    if(mode === 'original') renderMoveList();
+    else render();
+  }, 200);
+});
 
-/* 初期描画 */
+// ============================================================
+// 初期表示
+// ============================================================
+typePicker.classList.remove('show');
+moveList.style.display = 'none';
+stage.style.display = 'block';
 render();
 </script>
 </body>
