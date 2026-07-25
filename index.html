@@ -402,6 +402,7 @@ const MOVES = [
   // あく
   { name:"ぶちこわす", type:"あく", category:"物理", power:120, accuracy:100, pp:5, priority:0, effect:"自分の防御と特防が下がる", chance:100 },
   { name:"じゃあくなキバ", type:"あく", category:"物理", power:100, accuracy:100, pp:10, priority:0, effect:"自分の防御と特防が下がる", chance:30 },
+{ name:"ソウルピアス", type:"あく", category:"物理", power:70, accuracy:100, pp:5, priority:0, effect:"与えたダメージの4分の3回復", chance:100 },
   { name:"ダークロアー", type:"あく", category:"特殊", power:40, accuracy:100, pp:10, priority:1, effect:null, chance:null },
   { name:"ライフドレイン", type:"あく", category:"特殊", power:60, accuracy:100, pp:10, priority:0, effect:"与えたダメージの半分回復", chance:100 },
   { name:"グリムハウル", type:"あく", category:"特殊", power:150, accuracy:70, pp:5, priority:0, effect:"与えたダメージの半分、自分もダメージを受ける", chance:null },
@@ -428,12 +429,15 @@ const MOVES = [
   { name:"うさぎとび", type:"フェアリー", category:"物理", power:70, accuracy:100, pp:10, priority:0, effect:"相手の攻撃を2段階下げる", chance:100 },
   { name:"パワーハグ", type:"フェアリー", category:"物理", power:70, accuracy:100, pp:10, priority:0, effect:"相手の特攻を2段階下げる", chance:100 },
   { name:"あやかしのキリ", type:"フェアリー", category:"特殊", power:80, accuracy:100, pp:10, priority:0, effect:"相手の回避率を2段階下げる", chance:100 },
+{ name:"えいどくむ", type:"フェアリー", category:"特殊", power:90, accuracy:100, pp:10, priority:0, effect:"たまに相手を猛毒にする", chance:50 },
   { name:"トワイライト", type:"フェアリー", category:"変化", power:null, accuracy:null, pp:15, priority:0, effect:"自分の素早さと命中率を上げる", chance:100 },
+{ name:"イオンハート", type:"フェアリー", category:"変化", power:null, accuracy:null, pp:1, priority:0, effect:"味方全体の攻撃,防御,特攻,特防,素早さを1段階上げる", chance:100 },
   { name:"★どかもりスイーツ", type:"フェアリー", category:"特殊", power:100, accuracy:"必中", pp:3, priority:0, effect:null, chance:null },
   // かくとう
   { name:"しゅうきほう", type:"かくとう", category:"特殊", power:150, accuracy:90, pp:5, priority:0, effect:"この攻撃で倒せなかった場合、相手の攻撃と特攻を2段階上げてしまう", chance:100 },
   { name:"ファイナルラウンド", type:"かくとう", category:"変化", power:null, accuracy:null, pp:1, priority:7, effect:"自分の攻撃,特攻,防御,特防,素早さ,命中率を上げる", chance:100 },
   { name:"マグナムショット", type:"かくとう", category:"特殊", power:70, accuracy:100, pp:15, priority:0, effect:"自分の命中率を2段階上げる", chance:100 },
+{ name:"スタアラッシュ", type:"かくとう", category:"特殊", power:40, accuracy:100, pp:10, priority:0, effect:"相手の特防をガクンと下げる", chance:100 },
   { name:"白の衝撃", type:"かくとう", category:"特殊", power:80, accuracy:100, pp:1, priority:0, effect:"相手の攻撃と特攻を半分にする", chance:100 },
 { name:"いあい", type:"かくとう", category:"変化", power:null, accuracy:null, pp:1, priority:0, effect:"自分の攻撃をぐぐーんと上げる", chance:100 },
   // ほのお
@@ -467,6 +471,7 @@ const MOVES = [
   { name:"くるいざき", type:"くさ", category:"物理", power:60, accuracy:100, pp:10, priority:0, effect:"自分の攻撃が上昇する", chance:100 },
   { name:"グロウブレード", type:"くさ", category:"物理", power:150, accuracy:100, pp:5, priority:0, effect:"自分の命中率が2段階下がる", chance:100 },
   { name:"★命芽穿", type:"くさ", category:"物理", power:200, accuracy:100, pp:10, priority:0, effect:"1ターン目に自分の『こうげき』ランクを1段階上げ、2ターン目で攻撃する", chance:100 },
+{ name:"しぐれうち", type:"くさ", category:"物理", power:110, accuracy:100, pp:10, priority:0, effect:"自分の素早さがぐーんと上昇する", chance:100 },
   { name:"コットンパワー", type:"くさ", category:"変化", power:null, accuracy:null, pp:5, priority:0, effect:"自分の防御と素早さを2段階上昇させる", chance:100 },
   { name:"いばらがため", type:"くさ", category:"特殊", power:80, accuracy:100, pp:15, priority:0, effect:"与えたダメージの75%分回復する", chance:null },
   { name:"ウィンドミル", type:"くさ", category:"特殊", power:150, accuracy:"必中", pp:15, priority:0, effect:"自分の特攻が3段階下がる", chance:100 },
@@ -493,6 +498,7 @@ const MOVES = [
   { name:"スピンテール", type:"ノーマル", category:"物理", power:100, accuracy:100, pp:15, priority:0, effect:null, chance:null },
   { name:"ドラマチックな登場", type:"ノーマル", category:"物理", power:200, accuracy:100, pp:1, priority:0, effect:null, chance:null },
   { name:"きりふだ", type:"ノーマル", category:"特殊", power:100, accuracy:"必中", pp:15, priority:0, effect:"自分の命中率が3段階上昇する", chance:100 },
+{ name:"轟鳴", type:"ノーマル", category:"特殊", power:160, accuracy:"必中", pp:5, priority:0, effect:null, chance:null },
 { name:"うちとる", type:"ノーマル", category:"物理", power:200, accuracy:100, pp:5, priority:0, effect:"自分の攻撃がガクッと下がる", chance:100 },
   // どく
   { name:"ポイズンリーフ", type:"どく", category:"物理", power:65, accuracy:100, pp:15, priority:0, effect:"相手をたまに猛毒にする", chance:30 },
